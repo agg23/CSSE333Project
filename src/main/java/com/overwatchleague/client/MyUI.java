@@ -1,6 +1,12 @@
 package com.overwatchleague.client;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
 import javax.servlet.annotation.WebServlet;
+import javax.swing.JOptionPane;
 
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.VaadinServletConfiguration;
@@ -21,6 +27,8 @@ import com.vaadin.ui.VerticalLayout;
  */
 @Theme("mytheme")
 public class MyUI extends UI {
+	
+	private static DatabaseConnection databaseConnection = new DatabaseConnection();
 
     @Override
     protected void init(VaadinRequest vaadinRequest) {
@@ -28,6 +36,20 @@ public class MyUI extends UI {
         
         final TextField name = new TextField();
         name.setCaption("Type your name here:");
+        
+        ArrayList<Label> labels = new ArrayList<>();
+        
+	    String query = "SELECT name FROM Character";
+	    try {
+	    		Statement statement = databaseConnection.getDbService().getConnection().createStatement();
+	        ResultSet rs = statement.executeQuery(query);
+	        while (rs.next()) {
+	            layout.addComponent(new Label(rs.getString("name")));
+	        }
+	    } catch (SQLException e ) {
+	    		System.out.println("An error ocurred while retrieving characters. See printed stack trace.");
+			e.printStackTrace();
+	    }
 
         Button button = new Button("Click Me");
         button.addClickListener(e -> {
@@ -36,6 +58,7 @@ public class MyUI extends UI {
         });
         
         layout.addComponents(name, button);
+//        layout.addComponents(labels);
         
         setContent(layout);
     }
