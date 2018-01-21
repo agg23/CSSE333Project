@@ -8,11 +8,14 @@ import java.util.ArrayList;
 import javax.servlet.annotation.WebServlet;
 import javax.swing.JOptionPane;
 
+import com.overwatchleague.client.database.CharacterData;
+import com.overwatchleague.client.database.OWCharacter;
 import com.vaadin.annotations.Theme;
 import com.vaadin.annotations.VaadinServletConfiguration;
 import com.vaadin.server.VaadinRequest;
 import com.vaadin.server.VaadinServlet;
 import com.vaadin.ui.Button;
+import com.vaadin.ui.Grid;
 import com.vaadin.ui.Label;
 import com.vaadin.ui.TextField;
 import com.vaadin.ui.UI;
@@ -25,40 +28,25 @@ import com.vaadin.ui.VerticalLayout;
  * The UI is initialized using {@link #init(VaadinRequest)}. This method is intended to be 
  * overridden to add component to the user interface and initialize non-component functionality.
  */
-@Theme("mytheme")
+//@Theme("mytheme")
 public class MyUI extends UI {
 	
 	private static DatabaseConnection databaseConnection = new DatabaseConnection();
 
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
     protected void init(VaadinRequest vaadinRequest) {
         final VerticalLayout layout = new VerticalLayout();
+                
+        CharacterData data = new CharacterData(databaseConnection.getDbService().getConnection());
         
-        final TextField name = new TextField();
-        name.setCaption("Type your name here:");
-        
-        ArrayList<Label> labels = new ArrayList<>();
-        
-	    String query = "SELECT name FROM Character";
-	    try {
-	    		Statement statement = databaseConnection.getDbService().getConnection().createStatement();
-	        ResultSet rs = statement.executeQuery(query);
-	        while (rs.next()) {
-	            layout.addComponent(new Label(rs.getString("name")));
-	        }
-	    } catch (SQLException e ) {
-	    		System.out.println("An error ocurred while retrieving characters. See printed stack trace.");
-			e.printStackTrace();
-	    }
-
-        Button button = new Button("Click Me");
-        button.addClickListener(e -> {
-            layout.addComponent(new Label("Thanks " + name.getValue() 
-                    + ", it works!"));
-        });
-        
-        layout.addComponents(name, button);
-//        layout.addComponents(labels);
+        Grid<OWCharacter> grid = new Grid<>(OWCharacter.class);
+        grid.setCaption("Characters");
+        grid.setItems(data.getCharacters(false));
+        grid.setSizeFull();
+        grid.setColumnOrder(grid.getColumn("name"));
+        layout.addComponent(grid);
+        layout.setExpandRatio(grid, 1); // Expand to fill
         
         setContent(layout);
     }

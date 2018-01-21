@@ -3,22 +3,19 @@ package com.overwatchleague.client.database;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 
 
-public class CachedDBObject {
+public abstract class CachedDBObject {
 	Connection connection;
-	
-	HashMap<String, String> cachedObjects;
-	
+		
 	long lastUpdated;
 	
 	public CachedDBObject(Connection connection) {
 		this.connection = connection;
-		
-		this.cachedObjects = new HashMap<>();
-		
+				
 		updateData();
 	}
 	
@@ -26,9 +23,21 @@ public class CachedDBObject {
 		lastUpdated = System.currentTimeMillis();
 	}
 	
+	public PreparedStatement createPreparedStatement(String query) {
+		try {
+			return this.connection.prepareStatement(query);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		
+		return null;
+	}
+	
 	public boolean queryServerPrepared(PreparedStatement statement) {
 		try {
-			statement.execute();
+			ResultSet rs = statement.executeQuery();
+			
+			parseResponse(rs);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			System.out.println("ERROR: ServerPrepared failed with unknown error");
@@ -39,7 +48,7 @@ public class CachedDBObject {
 	
 	public boolean queryServerCallable(CallableStatement statement) {
 		try {
-			statement.execute();
+			ResultSet rs = statement.executeQuery();
 			
 			int returnValue = statement.getInt(1);
 			
@@ -48,6 +57,8 @@ public class CachedDBObject {
 			if(returnValue != 0) {
 				return false;
 			}
+			
+			parseResponse(rs);
 		} catch (SQLException e) {
 			e.printStackTrace();
 			System.out.println("ERROR: ServerCallable failed with unknown error");
@@ -56,20 +67,18 @@ public class CachedDBObject {
 		return true;
 	}
 	
-	public void handleError(int errorCode) {
-		System.err.println("Unimplemented error handling");
-	}
+	public abstract void handleError(int errorCode);
 	
-	public void parseResponse() {
-		System.err.println("Unimplemented response parsing");
-	}
+	public abstract void parseResponse(ResultSet resultSet);
 	
-	public HashMap<String, String> getCachedObjects(boolean forceUpdate) {
-		// If 5 minutes have passed since data was last retrieved, update data 
+	public boolean updateIfNecessary(boolean forceUpdate) {
+		boolean didUpdate = false;
+		// If 5 minutes have passed since data was last retrieved, update data
 		if(forceUpdate || System.currentTimeMillis() - lastUpdated > 1000*60*5) {
+			didUpdate = true;
 			updateData();
 		}
 		
-		return cachedObjects;
+		return didUpdate;
 	}
 }
